@@ -6,7 +6,7 @@ import actionlib
 from smach import State,StateMachine
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseArray ,PointStamped
-from std_msgs.msg import Empty
+from std_msgs.msg import Empty , Int8
 from tf import TransformListener
 import tf
 import math
@@ -17,6 +17,7 @@ import csv
 #Path for saving and retreiving the pose.csv file 
 output_file_path = rospkg.RosPack().get_path('follow_waypoints')+"/saved_path/pose.csv"
 waypoints = []
+waypoints_tolerance_level = []
 
 class FollowPath(State):
     def __init__(self):
@@ -111,7 +112,8 @@ class GetPath(State):
             self.path_ready = True
             with open(output_file_path, 'w') as file:
                 for current_pose in waypoints:
-                    file.write(str(current_pose.pose.pose.position.x) + ',' + str(current_pose.pose.pose.position.y) + ',' + str(current_pose.pose.pose.position.z) + ',' + str(current_pose.pose.pose.orientation.x) + ',' + str(current_pose.pose.pose.orientation.y) + ',' + str(current_pose.pose.pose.orientation.z) + ',' + str(current_pose.pose.pose.orientation.w)+ '\n')
+                    tolerance_level = waypoints_tolerance_level[]
+                    file.write(str(current_pose.pose.pose.position.x) + ',' + str(current_pose.pose.pose.position.y) + ',' + str(current_pose.pose.pose.position.z) + ',' + str(current_pose.pose.pose.orientation.x) + ',' + str(current_pose.pose.pose.orientation.y) + ',' + str(current_pose.pose.pose.orientation.z) + ',' + str(current_pose.pose.pose.orientation.w)+ ',' + str(tolerance_level)+ '\n')
 	        rospy.loginfo('poses written to '+ output_file_path)	
         ready_thread = threading.Thread(target=wait_for_path_ready)
         ready_thread.start()
@@ -138,6 +140,7 @@ class GetPath(State):
                     current_pose.pose.pose.orientation.w = float(row[6])
                     waypoints.append(current_pose)
                     self.poseArray_publisher.publish(convert_PoseWithCovArray_to_PoseArray(waypoints))
+                    waypoints_tolerance_level.append(int(row[7]))
             self.start_journey_bool = True
             
             
@@ -145,7 +148,10 @@ class GetPath(State):
         start_journey_thread.start()
 
         topic = "/initialpose"
+        waypoints_tolerance_level_topic = "/waypoint_tolerance_level"
         rospy.loginfo("Waiting to recieve waypoints via Pose msg on topic %s" % topic)
+        rospy.loginfo("Waiting to recieve waypoints_tolerance_level via Int msg on topic %s" % wa)
+        
         rospy.loginfo("To start following waypoints: 'rostopic pub /path_ready std_msgs/Empty -1'")
         rospy.loginfo("OR")
         rospy.loginfo("To start following saved waypoints: 'rostopic pub /start_journey std_msgs/Empty -1'")
@@ -155,6 +161,7 @@ class GetPath(State):
         while (not self.path_ready and not self.start_journey_bool):
             try:
                 pose = rospy.wait_for_message(topic, PoseWithCovarianceStamped, timeout=1)
+                tolerance_level = rospy.wait_for_message(waypoints_tolerance_level_topic, Int8, timeout=1)
             except rospy.ROSException as e:
                 if 'timeout exceeded' in e.message:
                     continue  # no new waypoint within timeout, looping...
@@ -162,6 +169,7 @@ class GetPath(State):
                     raise e
             rospy.loginfo("Recieved new waypoint")
             waypoints.append(pose)
+            
             # publish waypoint queue as pose array so that you can see them in rviz, etc.
             self.poseArray_publisher.publish(convert_PoseWithCovArray_to_PoseArray(waypoints))
 
