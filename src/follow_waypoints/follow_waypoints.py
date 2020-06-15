@@ -63,8 +63,9 @@ class FollowPath(State):
             rospy.loginfo("To cancel the goal: 'rostopic pub -1 /move_base/cancel actionlib_msgs/GoalID -- {}'")
             self.client.send_goal(goal)
             #This is the loop which exist when the robot is near a certain GOAL point . instead of actionlib #self.client.wait_for_result()
-            
+            distance = 5
             waypoints_tolerance_level_ = waypoints_tolerance_level[count]
+            count = count + 1
             while(distance > waypoints_tolerance_level_):
                 now = rospy.Time.now()
                 self.listener.waitForTransform(self.odom_frame_id, self.base_frame_id, now, rospy.Duration(4.0))
