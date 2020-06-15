@@ -63,8 +63,9 @@ class FollowPath(State):
             rospy.loginfo("To cancel the goal: 'rostopic pub -1 /move_base/cancel actionlib_msgs/GoalID -- {}'")
             self.client.send_goal(goal)
             #This is the loop which exist when the robot is near a certain GOAL point . instead of actionlib #self.client.wait_for_result()
-            distance = waypoints_tolerance_level[count]
-            while(distance > self.distance_tolerance ):
+            
+            waypoints_tolerance_level_ = waypoints_tolerance_level[count]
+            while(distance > waypoints_tolerance_level_):
                 now = rospy.Time.now()
                 self.listener.waitForTransform(self.odom_frame_id, self.base_frame_id, now, rospy.Duration(4.0))
                 trans,rot = self.listener.lookupTransform(self.odom_frame_id,self.base_frame_id, now)
@@ -121,7 +122,7 @@ class GetPath(State):
             with open(output_file_path, 'w') as file:
                 count = 0
                 for current_pose in waypoints:
-                    tolerance_level = 100 
+                    tolerance_level = 1
                     file.write(str(current_pose.pose.pose.position.x) + ',' + str(current_pose.pose.pose.position.y) + ',' + str(current_pose.pose.pose.position.z) + ',' + str(current_pose.pose.pose.orientation.x) + ',' + str(current_pose.pose.pose.orientation.y) + ',' + str(current_pose.pose.pose.orientation.z) + ',' + str(current_pose.pose.pose.orientation.w)+ ',' + str(tolerance_level)+ '\n')
                 rospy.loginfo('poses written to '+ output_file_path)	
         ready_thread = threading.Thread(target=wait_for_path_ready)
